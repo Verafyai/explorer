@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PROGRAMS, account, ago, certificationContractHash, decodeCertification, decodeRuling, harnesses, nameOf, raw, short, slot, solana } from "@/lib/chain";
+import { Stamp } from "@/components/stamp";
+import { gradeFor } from "@/lib/grade";
+import { PROGRAMS, provenFor, account, ago, certificationContractHash, decodeCertification, decodeRuling, harnesses, nameOf, raw, short, slot, solana } from "@/lib/chain";
 
 export const revalidate = 30;
 export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
@@ -13,7 +15,8 @@ export default async function CertificationPage({ params }: { params: Promise<{ 
   if (!a || a.owner !== PROGRAMS.certification) notFound();
   const c = decodeCertification(address, raw(a));
   if (!c) notFound();
-  const [now, r, all] = await Promise.all([slot(), account(c.ruling), harnesses()]);
+  const [now, r, all, proven] = await Promise.all([slot(), account(c.ruling), harnesses(), provenFor(c.program)]);
+  const g = gradeFor(c, proven);
   const ruling = r ? decodeRuling(c.ruling, raw(r)) : null;
   const n = nameOf(c.program);
   const expected = certificationContractHash(c);
@@ -25,11 +28,13 @@ export default async function CertificationPage({ params }: { params: Promise<{ 
       <p className="muted" style={{ fontSize: 14 }}><a href="/#certifications">Certifications</a> / {short(address)}</p>
       <section className="stack" style={{ gap: 10 }}>
         <p className="mono" style={{ color: "var(--teal)", fontSize: 14 }}>Verafy Certification</p>
-        <h1 style={{ fontSize: "clamp(28px, 4vw, 40px)" }}>{n?.name || short(c.program, 8)}: {c.levelName}</h1>
-        <div className="notice">Devnet certification only. The jurors behind it voted by script, and it was issued from a Sniff run, so Sniffed is the highest level it could reach. It is not a full certification.</div>
+        <h1 style={{ fontSize: "clamp(28px, 4vw, 40px)" }}>{n?.name || short(c.program, 8)}: grade {g.grade}</h1>
+        <div className="notice">Devnet certification only. The jurors behind it voted by script.</div>
       </section>
+      <Stamp cert={{ ...c, certifiedAt: undefined }} name={n?.name || short(c.program, 8)} proven={proven} />
+      <p className="muted" style={{ fontSize: 13 }}>Grades: A Hardened, B Fuzzed, C Sniffed, with plus or minus by Fuzzy Score. I means the run was too shallow to grade; F means an exploit was proven. The grade is read from the level and score bytes in this account.</p>
       <section className="tiles">
-        <div className="tile"><b style={{ color: c.level ? "var(--teal)" : undefined }}>{c.levelName}</b><span>level {c.level} of 3</span></div>
+        <div className="tile"><b style={{ color: c.level ? "var(--teal)" : "var(--medium)" }}>{g.grade}</b><span>{c.levelName}, level {c.level} of 3</span></div>
         <div className="tile"><b>{c.score}</b><span>Fuzzy Score</span></div>
         <div className="tile"><b>{c.seats}</b><span>jurors, {c.families} model families</span></div>
         <div className="tile"><b>{ago(c.certifiedSlot, now)}</b><span>slot {c.certifiedSlot.toLocaleString("en-US")}</span></div>

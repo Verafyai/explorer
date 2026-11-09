@@ -139,3 +139,8 @@ table.registry tbody tr:hover td { background: var(--surface); }
 .vh-menu a { display: block; padding: 12px 0; color: #C9D2DC; text-decoration: none; font-size: 15px; border-bottom: 1px solid #1D2630; }
 @media (max-width: 640px) { .kv { grid-template-columns: 1fr; gap: 2px 0; } .kv dd { margin-bottom: 8px; } }
 table.data th.c, table.data td.c { text-align: center; }
+
+/* ASCII certification stamps */
+.stamp { margin: 0; font: 700 13px/1.35 var(--font-stamp), monospace; letter-spacing: 0; white-space: pre; transform: rotate(-1deg); opacity: 0.95; width: max-content; max-width: 100%; overflow: hidden; }
+.stamp-mini { font-size: 11px; line-height: 1.2; transform: rotate(-1.5deg); }
+.stamp-tag { font-size: 12px; line-height: 1; transform: none; padding: 0; }

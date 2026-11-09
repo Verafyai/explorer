@@ -1,3 +1,4 @@
+import { Stamp } from "@/components/stamp";
 import { Search } from "@/components/search";
 import { ago, certifications, harnesses, nameOf, rulings, short, slot } from "@/lib/chain";
 
@@ -33,17 +34,17 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
 
       <section id="certifications" className="stack" style={{ gap: 12 }}>
         <h2>Certifications</h2>
-        <p className="quiet">A Verafy Certification is a level written for one exact build of a program, only from a sealed jury ruling. Today all of them are devnet certifications with jurors voting by script, not full certifications.</p>
+        <p className="quiet">A Verafy Certification is a grade written for one exact build of a program, only from a sealed jury ruling: A Hardened, B Fuzzed, C Sniffed, I too shallow to grade, F exploit proven. Today all of them are devnet certifications with jurors voting by script, not full certifications.</p>
         <div className="tablewrap">
           <table className="data">
-            <thead><tr><th>Program</th><th className="c">Level</th><th className="c">Fuzzy Score</th><th className="c">Jury</th><th>Certified</th><th>Account</th></tr></thead>
+            <thead><tr><th>Program</th><th className="c">Grade</th><th className="c">Fuzzy Score</th><th className="c">Jury</th><th>Certified</th><th>Account</th></tr></thead>
             <tbody>
               {certs.map((c) => {
                 const n = nameOf(c.program);
                 return (
                   <tr key={c.address}>
                     <td><a href={`/program/${c.program}`} style={{ color: "var(--text)" }}>{n?.name || short(c.program, 6)}</a><div className="mono muted" style={{ fontSize: 12 }}>{short(c.program)}</div></td>
-                    <td className="c"><span className={c.level > 0 ? "tag tag-ok" : "tag"}>{c.levelName}</span></td>
+                    <td className="c"><Stamp cert={c} name="" size="tag" /></td>
                     <td className="c mono">{c.score}</td>
                     <td className="c mono">{c.seats} · {c.families}f</td>
                     <td className="muted">{ago(c.certifiedSlot, now)}</td>

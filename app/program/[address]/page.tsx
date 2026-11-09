@@ -1,3 +1,4 @@
+import { Stamp } from "@/components/stamp";
 import type { Metadata } from "next";
 import { ago, certifications, isAddress, nameOf, short, slot } from "@/lib/chain";
 
@@ -30,8 +31,8 @@ export default async function ProgramPage({ params }: { params: Promise<{ addres
         {certs.length ? (
           <div className="tablewrap">
             <table className="data">
-              <thead><tr><th className="c">Level</th><th className="c">Score</th><th>Build (bytecode hash)</th><th>Certified</th><th>Account</th></tr></thead>
-              <tbody>{certs.map((c) => <tr key={c.address}><td className="c"><span className="tag tag-ok">{c.levelName}</span></td><td className="c mono">{c.score}</td><td className="mono muted" style={{ fontSize: 12 }}>{c.bytecodeHash.slice(0, 20)}…</td><td className="muted">{ago(c.certifiedSlot, now)}</td><td><a className="mono" href={`/certification/${c.address}`}>{short(c.address)}</a></td></tr>)}</tbody>
+              <thead><tr><th className="c">Grade</th><th className="c">Score</th><th>Build (bytecode hash)</th><th>Certified</th><th>Account</th></tr></thead>
+              <tbody>{certs.map((c) => <tr key={c.address}><td className="c"><Stamp cert={c} name="" size="tag" /></td><td className="c mono">{c.score}</td><td className="mono muted" style={{ fontSize: 12 }}>{c.bytecodeHash.slice(0, 20)}…</td><td className="muted">{ago(c.certifiedSlot, now)}</td><td><a className="mono" href={`/certification/${c.address}`}>{short(c.address)}</a></td></tr>)}</tbody>
             </table>
           </div>
         ) : (

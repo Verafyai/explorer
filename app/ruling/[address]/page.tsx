@@ -1,3 +1,4 @@
+import { gradeFor } from "@/lib/grade";
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { PROGRAMS, account, certifications, decodeRuling, harnesses, nameOf, raw, short, solana } from "@/lib/chain";
@@ -28,7 +29,7 @@ export default async function RulingPage({ params }: { params: Promise<{ address
         <div className="tile"><b>{r.agree} / {r.seats}</b><span>jurors agree</span></div>
         <div className="tile"><b>{(r.barPpm / 10000).toFixed(0)}%</b><span>agreement bar</span></div>
       </section>
-      {cert ? <p className="quiet">This ruling backs a certification: <a href={`/certification/${cert.address}`}>{nameOf(cert.program)?.name || short(cert.program)}, {cert.levelName}</a>.</p> : null}
+      {cert ? <p className="quiet">This ruling backs a certification: <a href={`/certification/${cert.address}`}>{nameOf(cert.program)?.name || short(cert.program)}, grade {gradeFor(cert).grade}</a>.</p> : null}
       <section className="stack" style={{ gap: 12 }}>
         <h2>Jurors</h2>
         <p className="quiet">Each juror committed a hash of its vote first, then revealed the vote and its reasoning hash. The program checked each reveal against the commitment.</p>

@@ -135,3 +135,15 @@ export const ago = (fromSlot: number, now: number) => {
   if (s < 172800) return `${Math.round(s / 3600)}h ago`;
   return `${Math.round(s / 86400)}d ago`;
 };
+
+/** Proven findings for a program, from the Fuzzy registry. A level-0 certification grades F with proven findings, I without. */
+export async function provenFor(program: string): Promise<number> {
+  try {
+    const r = await fetch(`https://fuzzy.verafy.ai/api/registry?program=${program}`, { next: { revalidate: 300 }, signal: AbortSignal.timeout(2500) });
+    if (!r.ok) return 0;
+    const j = await r.json();
+    return Number(j.proven) || 0;
+  } catch {
+    return 0;
+  }
+}
