@@ -26,7 +26,7 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ e
       </section>
 
       <section className="tiles" aria-label="Totals">
-        <div className="tile"><b>{certs.length}</b><span>certifications</span></div>
+        <div className="tile"><b>{certs.filter((c) => c.level > 0).length}</b><span>certified builds, of {certs.length} certification records</span></div>
         <div className="tile"><b>{sealed.length}</b><span>sealed rulings of {rules.length}</span></div>
         <div className="tile"><b>{active.length}</b><span>active harnesses, {families} model {families === 1 ? "family" : "families"}</span></div>
         <div className="tile"><b>{now.toLocaleString("en-US")}</b><span>devnet slot</span></div>
