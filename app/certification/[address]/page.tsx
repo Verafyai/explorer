@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Stamp } from "@/components/stamp";
 import { gradeFor } from "@/lib/grade";
-import { PROGRAMS, provenFor, account, ago, certificationContractHash, decodeCertification, decodeRuling, harnesses, nameOf, raw, short, slot, solana } from "@/lib/chain";
+import { PROGRAMS, provenFor, account, ago, certificationContractHash, certificationFor, decodeCertification, decodeRecord, decodeRuling, harnesses, nameOf, raw, recordsFor, short, slot, solana } from "@/lib/chain";
 
 export const revalidate = 30;
 export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
@@ -13,9 +13,12 @@ export default async function CertificationPage({ params }: { params: Promise<{ 
   const { address } = await params;
   const a = await account(address).catch(() => null);
   if (!a || a.owner !== PROGRAMS.certification) notFound();
-  const c = decodeCertification(address, raw(a));
+  // The address may be the certification account (the latest verdict) or one verdict record.
+  const record = decodeRecord(address, raw(a));
+  const c = record ?? decodeCertification(address, raw(a));
   if (!c) notFound();
-  const [now, r, all, proven] = await Promise.all([slot(), account(c.ruling), harnesses(), provenFor(c.program)]);
+  const [now, r, all, proven, history, head] = await Promise.all([slot(), account(c.ruling), harnesses(), provenFor(c.program), recordsFor(c.program, c.bytecodeHash).catch(() => []), record ? certificationFor(c.program, c.bytecodeHash).catch(() => null) : Promise.resolve(address)]);
+  const current = history.find((h) => !h.supersededBy) ?? null;
   const g = gradeFor(c, proven);
   const ruling = r ? decodeRuling(c.ruling, raw(r)) : null;
   const n = nameOf(c.program);
@@ -30,6 +33,9 @@ export default async function CertificationPage({ params }: { params: Promise<{ 
         <p className="mono" style={{ color: "var(--teal)", fontSize: 14 }}>Verafy Certification</p>
         <h1 style={{ fontSize: "clamp(28px, 4vw, 40px)" }}>{n?.name || short(c.program, 8)}: grade {g.grade}</h1>
         <div className="notice">Devnet certification only. The jurors behind it voted by script.</div>
+        {record?.supersededBy ? (
+          <div className="notice">This is an earlier verdict, number {record.seq + 1} for this build, and a newer one replaced it. It stays on chain as it was. <a href={`/certification/${record.supersededBy}`}>Next verdict</a>{current ? <> · <a href={`/certification/${head || current.address}`}>current verdict</a></> : null}.</div>
+        ) : null}
       </section>
       <Stamp cert={{ ...c, certifiedAt: undefined }} name={n?.name || short(c.program, 8)} proven={proven} />
       <p className="muted" style={{ fontSize: 13 }}>Grades: A Hardened, B Fuzzed, C Sniffed, with plus or minus by Fuzzy Score. I means the run was too shallow to grade; F means an exploit was proven. The grade is read from the level and score bytes in this account.</p>
@@ -45,7 +51,8 @@ export default async function CertificationPage({ params }: { params: Promise<{ 
           <dt>Program</dt><dd><a className="mono" href={`/program/${c.program}`}>{c.program}</a>{n?.fuzzy ? <> · <a href={`https://fuzzy.verafy.ai/programs/${c.program}`}>Fuzzy report card</a></> : null}</dd>
           <dt>Bytecode hash</dt><dd className="mono">{c.bytecodeHash}</dd>
           <dt>Report hash</dt><dd className="mono">{c.reportHash}</dd>
-          <dt>Certification account</dt><dd><a className="mono" href={solana(address)}>{address}</a></dd>
+          <dt>{record ? "Verdict record" : "Certification account"}</dt><dd><a className="mono" href={solana(address)}>{address}</a></dd>
+          {record && head ? <><dt>Certification account</dt><dd><a className="mono" href={`/certification/${head}`}>{head}</a></dd></> : null}
           <dt>Certifier</dt><dd><a className="mono" href={solana(c.certifier)}>{c.certifier}</a></dd>
           <dt>Releasable after slot</dt><dd className="mono">{c.releasableAfterSlot.toLocaleString("en-US")} {now >= c.releasableAfterSlot ? "(passed)" : "(challenge window open)"}</dd>
         </dl>
@@ -72,6 +79,27 @@ export default async function CertificationPage({ params }: { params: Promise<{ 
             <p className="muted" style={{ fontSize: 13 }}>Votes are answer indexes: 0 Not certified, 1 Sniffed, 2 Fuzzed, 3 Hardened.</p>
           </>
         ) : <p className="quiet">The ruling account could not be read.</p>}
+      </section>
+      <section className="stack" style={{ gap: 12 }}>
+        <h2>Verdicts for this build</h2>
+        <p className="quiet">Every verdict is kept on chain as its own record. When a newer one replaces it, the old record points to the new one, so a receipt for any verdict leads to the current one. A program upgrade changes the bytecode hash and starts a new list.</p>
+        {history.length ? (
+          <div className="tablewrap">
+            <table className="data">
+              <thead><tr><th>Verdict</th><th>Grade</th><th className="c">Score</th><th>Ruling</th><th>Record</th><th>Status</th></tr></thead>
+              <tbody>{history.map((h) => (
+                <tr key={h.address}>
+                  <td className="mono">{h.seq + 1}</td>
+                  <td>{gradeFor(h, h.supersededBy ? 0 : proven).grade}, {h.levelName}</td>
+                  <td className="c mono">{h.score}</td>
+                  <td><a className="mono" href={`/ruling/${h.ruling}`}>{short(h.ruling)}</a></td>
+                  <td><a className="mono" href={`/certification/${h.address}`}>{short(h.address)}</a>{h.address === address ? <span className="muted"> (this page)</span> : null}</td>
+                  <td>{h.supersededBy ? <>replaced by <a className="mono" href={`/certification/${h.supersededBy}`}>{short(h.supersededBy)}</a></> : <span className="tag tag-ok">current</span>}</td>
+                </tr>
+              ))}</tbody>
+            </table>
+          </div>
+        ) : <p className="quiet">No verdict records yet. This certification was written before records existed.</p>}
       </section>
     </main>
   );

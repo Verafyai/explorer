@@ -48,15 +48,42 @@ export type Certification = {
   address: string; level: number; levelName: string; score: number; seats: number; families: number;
   program: string; bytecodeHash: string; reportHash: string; ruling: string; certifier: string;
   releasableAfterSlot: number; certifiedSlot: number;
+  /** On the certification account: how many verdict records this build has. On a record: its own number. */
+  records: number;
 };
-export function decodeCertification(address: string, b: Buffer): Certification | null {
-  if (b.length < 192 || b.subarray(0, 8).toString() !== "VRFYCRT1") return null;
+function fields(address: string, b: Buffer): Certification {
   return {
     address, level: b[8], levelName: LEVELS[b[8]] ?? `Level ${b[8]}`, score: b[9], seats: b[10], families: b[11],
     program: b58(b.subarray(16, 48)), bytecodeHash: b.subarray(48, 80).toString("hex"), reportHash: b.subarray(80, 112).toString("hex"),
     ruling: b58(b.subarray(112, 144)), certifier: b58(b.subarray(144, 176)),
     releasableAfterSlot: Number(b.readBigUInt64LE(176)), certifiedSlot: Number(b.readBigUInt64LE(184)),
+    records: b.readUInt32LE(12),
   };
+}
+/** The latest verdict for one build, at ["cert", program, bytecode hash]. */
+export function decodeCertification(address: string, b: Buffer): Certification | null {
+  if (b.length < 192 || b.subarray(0, 8).toString() !== "VRFYCRT1") return null;
+  return fields(address, b);
+}
+
+/** One verdict kept for good, at ["verdict", program, bytecode hash, n]. A replaced one names its replacement. */
+export type VerdictRecord = Certification & { seq: number; supersedes: string | null; supersededBy: string | null };
+const ZERO = Buffer.alloc(32);
+export function decodeRecord(address: string, b: Buffer): VerdictRecord | null {
+  if (b.length < 256 || b.subarray(0, 8).toString() !== "VRFYVRD1") return null;
+  const link = (o: number) => (b.subarray(o, o + 32).equals(ZERO) ? null : b58(b.subarray(o, o + 32)));
+  const f = fields(address, b);
+  return { ...f, seq: f.records, supersedes: link(192), supersededBy: link(224) };
+}
+/** Every verdict record for one build, oldest first. */
+export async function recordsFor(program: string, bytecodeHash: string) {
+  const accts = await rpc<Acct[]>("getProgramAccounts", [PROGRAMS.certification, { encoding: "base64", filters: [{ dataSize: 256 }, { memcmp: { offset: 16, bytes: program } }, { memcmp: { offset: 48, bytes: b58(Buffer.from(bytecodeHash, "hex")) } }] }]);
+  return accts.map((a) => decodeRecord(a.pubkey, raw(a.account))).filter(Boolean).sort((x, y) => x!.seq - y!.seq) as VerdictRecord[];
+}
+/** The certification account a record belongs to: the one for the same program and build. */
+export async function certificationFor(program: string, bytecodeHash: string) {
+  const accts = await rpc<Acct[]>("getProgramAccounts", [PROGRAMS.certification, { encoding: "base64", filters: [{ dataSize: 192 }, { memcmp: { offset: 16, bytes: program } }, { memcmp: { offset: 48, bytes: b58(Buffer.from(bytecodeHash, "hex")) } }] }]);
+  return accts[0]?.pubkey ?? null;
 }
 export async function certifications() {
   const accts = await programAccounts(PROGRAMS.certification, 192);
