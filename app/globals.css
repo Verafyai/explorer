@@ -140,6 +140,12 @@ table.registry tbody tr:hover td { background: var(--surface); }
 @media (max-width: 640px) { .kv { grid-template-columns: 1fr; gap: 2px 0; } .kv dd { margin-bottom: 8px; } }
 table.data th.c, table.data td.c { text-align: center; }
 
+/* Short values in a narrow column must not break across lines. "4 / 4" was
+   wrapping to "4 /" over "4", and a truncated address was splitting mid-token.
+   Only the centered cells and address links are pinned: the summary column is
+   left to wrap, which is what the horizontal scroll on .tablewrap is for. */
+table.data td.c, table.data th.c, table.data td > a.mono { white-space: nowrap; }
+
 /* ASCII certification stamps */
 .stamp { margin: 0; font: 700 13px/1.35 var(--font-stamp), monospace; letter-spacing: 0; white-space: pre; transform: rotate(-1deg); opacity: 0.95; width: max-content; max-width: 100%; overflow: hidden; }
 .stamp-mini { font-size: 11px; line-height: 1.2; transform: rotate(-1.5deg); }
