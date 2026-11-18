@@ -22,13 +22,14 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       <body>
         {/* The canonical Verafy header: credits, sign-in and Google Analytics for every Verafy site. */}
         <Script src="https://www.verafy.ai/header/v1/verafy-header.js" strategy="afterInteractive" />
-        <verafy-header product="explorer" credits="off" links="Certifications:/#certifications, Rulings:/#rulings, Harnesses:/#harnesses" style={{ display: "block", minHeight: 64, background: "#0B0E12" }}>
+        <verafy-header product="explorer" credits="off" links="Certifications:/#certifications, Rulings:/#rulings, Harnesses:/#harnesses, Thesis:/thesis" style={{ display: "block", minHeight: 64, background: "#0B0E12" }}>
           <span slot="status">Solana devnet</span>
           <nav slot="menu" className="vh-menu" aria-label="Explorer">
             <a href="/">Overview</a>
             <a href="/#certifications">Certifications</a>
             <a href="/#rulings">Rulings</a>
             <a href="/#harnesses">Harnesses</a>
+            <a href="/thesis">Thesis stamps</a>
             <a href="https://fuzzy.verafy.ai/certifications">Fuzzy registry</a>
             <a href="https://devnet.verafy.ai">Verafy Devnet</a>
           </nav>
